@@ -35,7 +35,7 @@ void NeuralNetwork::initializeNetwork(int numOfInputs, int numOfHidden, int numO
 
 
 
-double NeuralNetwork::activate(vector<double>& weights, vector<double>& inputs) {
+double NeuralNetwork::activate(vector<double>& weights, const vector<double>& inputs) {
 	double activationValue = weights[-1];		// Accumulates sum for bias, weight * input
 	for (int i = 0; i < weights.size(); ++i) {
 		activationValue += weights[i] * inputs[i];
@@ -51,22 +51,22 @@ double NeuralNetwork::sigmoidDerivative(double sigmoid) {
 	return sigmoid * (1.0 - sigmoid);
 }
 
-vector<double> NeuralNetwork::forwardPropogate(Network& network, vector<double>& inputs) {
-	for (auto& layer : network) {
-		vector<double> newInputs;
+vector<double> NeuralNetwork::forwardPropogate(vector<double>& inputs) {
+	for (auto& layer : this->network) {
+		vector<double> outputCollector;
 		
 		for (auto& neuron : layer) {
 			double activationValue = activate(neuron.weights, inputs);
 			neuron.output = sigmoid(activationValue);
-			newInputs.push_back(neuron.output);		// collects outputs for next layer
+			outputCollector.push_back(neuron.output);		// collects outputs for next layer
 		}
 
-		inputs.swap(newInputs);
+		inputs.swap(outputCollector);
 	}
 	return inputs;
 }
 
-void NeuralNetwork::backwardPropogate(Network& network, const vector<double>& expectedValue) {
+void NeuralNetwork::backwardPropogate(const vector<double>& expectedValue) {
 	for (int i = static_cast<int>(network.size()) - 1; i >= 0; --i) {	// iterate layers in reverse
 		auto& layer = network[i]; // might need to static cast to <size_t>
 		vector<double> errors(layer.size(), 0.0);
@@ -96,15 +96,16 @@ void NeuralNetwork::backwardPropogate(Network& network, const vector<double>& ex
 	}
 }
 
-void NeuralNetwork::updateWeights(Network& network, vector<double>& inputRow, double learningRate) {
+void NeuralNetwork::updateWeights(const vector<double>& inputData, double learningRate) {
 	for (int i = 0; i < network.size(); ++i) {
 		vector<double> inputs;
+		
 		// Input layer weights
 		if (i == 0) {
-			inputs.assign(inputRow.begin(), inputRow.end() - 1);
+			inputs.assign(inputData.begin(), inputData.end() - 1);
 		}
 		else {
-			// Hidden layer / Output Layer weights
+			// Hidden layer / Output Layer weights: uses outputs from previous layer.
 			const auto& previousLayer = network[i - 1];
 			for (const auto& neuron : previousLayer)
 				inputs.push_back(neuron.output);
@@ -122,7 +123,7 @@ void NeuralNetwork::updateWeights(Network& network, vector<double>& inputRow, do
 	}
 }
 
-void NeuralNetwork::trainNetwork(Network& network, vector<vector<double>>& trainingData, double learningRate,
+void NeuralNetwork::trainNetwork(vector<vector<double>>& trainingData, double learningRate,
 	int epochs, int numOfOutputs) {
 	for (int epoch = 0; epoch < epochs; ++epoch) {
 		double errorSum = 0.0;
@@ -131,30 +132,37 @@ void NeuralNetwork::trainNetwork(Network& network, vector<vector<double>>& train
 			vector<double> inputs(row.begin(), row.end() - 1);
 
 			// Forward propogation of Neuron Outputs
-			vector<double> outputs = forwardPropogate(network, inputs);
+			vector<double> outputs = forwardPropogate(inputs);
 
 			vector<double> expected(numOfOutputs, 0.0);
-			int cls = static_cast<int>(row.back());
-			if (cls >= 0 && cls < numOfOutputs) {
-				expected[static_cast<size_t>(cls)] = 1.0;
+			int label = static_cast<int>(row.back());
+			if (label >= 0 && label < numOfOutputs) {
+				expected[static_cast<size_t>(label)] = 1.0;
 			}
 			else {
 				continue;
 			}
 
-			// Sum squared Error
+			// Calculate sum of squared Errors
 			for (size_t i = 0; i < expected.size(); ++i) {
 				double difference = expected[i] - outputs[i];
 				errorSum += difference * difference;
 			}
 
 			// Backwards Propogation and weight update
-			backwardPropogate(network, expected);
-			updateWeights(network, row, learningRate);
+			backwardPropogate(expected);
+			updateWeights(row, learningRate);
 		}
 
 		
 	}
+}
+
+// Make a Prediction
+double NeuralNetwork::predict(vector<double>& features) {
+	vector<double> outputs = forwardPropogate(features);
+	auto findMax = std::max_element(outputs.begin(), outputs.end());
+	return static_cast<double>(std::distance(outputs.begin(), findMax));
 }
 
 
