@@ -21,11 +21,11 @@ class NeuralNetwork {
 public:
 	// numOfInputs = number of inputs for each Neuron.
 	// numOfHidden = number of  desired Neurons in Hidden Layer.
-	// numOfOutputs = number of desired Neurons in Output Layer.
+	// numOfOutputs = number of desired Neurons in Output Layer.		/remember input is 400x400 h is 32-128 o is 2 (dog/cat)
 	void initializeNetwork(int numOfinputs, int numOfHidden, int numOfOutputs);
 	
 	// Neuron activation calculated as weighted sum of inputs.
-	double activate(vector<double>& weights, const vector<double>& inputs);
+	double activate(const vector<double>& weights, const vector<double>& inputs);
 
 	// Sigmoid activation function. f(x) = 1 / 1 (1 + e^-x) 
 	double sigmoid(double activationValue);
@@ -62,6 +62,9 @@ public:
 	const Network& getNetwork() const {
 		return network;
 	}
+
+	void debugNetworkSizes() const;
+
 private:
 	Network network;
 };

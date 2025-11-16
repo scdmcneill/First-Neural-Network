@@ -1,18 +1,24 @@
+#include <iostream>
 #include "NeuralNetwork.h"
+#include "ImageInput.h"
 
 int main() {
-	NeuralNetwork net;
-	net.initializeNetwork(3, 2, 1);
-	
-	const auto& network = net.getNetwork();
+	try {
+		// Load and flatten image
+		auto x = loadImage400x400("testdog.png");
 
-	for (size_t ithLayer = 0; ithLayer < network.size(); ++ithLayer) {
-		cout << "Layer " << ithLayer + 1 << ":\n";
-		for (size_t ithNeuron = 0; ithNeuron < network[ithLayer].size(); ++ithNeuron) {
-			cout << " Neuron " << ithNeuron + 1 << " weights: ";
-			for (double weight : network[ithLayer][ithNeuron].weights)
-				cout << weight << " ";
-			cout << '\n';
-		}
+		NeuralNetwork neuralNetwork;
+
+		neuralNetwork.initializeNetwork(400 * 400, 16, 10);
+
+		std::cout << "x.size() = " << x.size() << "\n";
+		neuralNetwork.debugNetworkSizes();
+
+		auto y = neuralNetwork.forwardPropogate(x);
+		std::cout << "pixels: " << x.size() << "\n";
+		std::cout << "outputs: " << y.size() << "\n";
+	}
+	catch (const std::exception& e) {
+		std::cerr << "Error: " << e.what() << "\n";
 	}
 }
